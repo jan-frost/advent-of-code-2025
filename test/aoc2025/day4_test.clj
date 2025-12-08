@@ -8,9 +8,6 @@
 
 (deftest day4
   
-  (defn lines-with-index [lines]
-    (map-indexed vector lines))
-  
   (testing "map index"
     (is (= [[0 \a] [1 \b]] (map-indexed vector [\a \b]))))
   
@@ -23,17 +20,17 @@
          (map-indexed vector)
          (map (fn [[y line]]
                 (map #(vector % y) (keep-indexed #(when (= %2 \@) %1) line))))
-         (into [])
-         (apply concat)))
+         (apply set/union)
+         (set)))
 
   (testing "map to indices"
     (are
      [input output]
      (= output (map-to-indices input))
-      "@" [[0 0]]
+      "@" #{[0 0]}
       ".
-       @" [[0 1]]
-      ".@" [[1 0]]))
+       @" #{[0 1]}
+      ".@" #{[1 0]}))
   
   (defn neighbors [x y]
     (apply hash-map [[(- x 1) (- y 1)] 1
@@ -78,25 +75,26 @@
      (= output (set/difference (set coll1) (set coll2)))
       [[-1 1] [0 0]] [[1 1] [-1 1]] #{[0 0]}))
   
-  (defn accessible-parperrolls [s]
-    (let [paperrolls (map-to-indices s)]
-      (->> paperrolls
-           (map #(apply neighbors %))
-           (apply merge-with +)
-           (filter #(>= (second %) 4))
-           (map first)
-           set
-           (set/difference (set paperrolls))
-           count
-           )))
+  (defn accessible-parperrolls [paperrolls]
+    (let [accessible_rolls (->> paperrolls
+                                (map #(apply neighbors %))
+                                (apply merge-with +)
+                                (filter #(>= (second %) 4))
+                                (map first)
+                                set)
+          rolls_to_remove (set/difference paperrolls accessible_rolls)
+          number_of_rolls_removed (count rolls_to_remove)]
+      (case number_of_rolls_removed
+        0 0
+        (+ number_of_rolls_removed (accessible-parperrolls (set/difference paperrolls rolls_to_remove))))))
 
   (testing "day4"
     (are
      [input output]
-     (= output (accessible-parperrolls input))
+     (= output (accessible-parperrolls (map-to-indices input)))
       "@@@
        @@@
-       @@@" 4
+       @@@" 9
       "..@@.@@@@.
 @@@.@.@.@@
 @@@@@.@.@@
@@ -106,7 +104,7 @@
 .@.@.@.@@@
 @.@@@.@@@@
 .@@@@@@@@.
-@.@.@@@.@." 13
-    (slurp "test/aoc2025/day4_input.txt") 1346))
+@.@.@@@.@." 43
+      (slurp "test/aoc2025/day4_input.txt") 8493))
   
   )
